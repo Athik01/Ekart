@@ -43,6 +43,8 @@ pipeline {
             steps {
                 script {
                     sh """
+                        minikube stop
+                        minikube delete
                         minikube start
                         kubectl delete deployment ekart-deployment || true
                         kubectl create deployment ekart-deployment --image=${DOCKER_IMAGE} --port=8070
