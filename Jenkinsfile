@@ -2,44 +2,59 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "ekart-app"
-        NAMESPACE = "ekart-ns"
+        DOCKER_IMAGE = 'mohamedathikr/ekart:latest'
+        KUBE_CONFIG = "$HOME/.kube/config"
     }
 
     stages {
-        stage('Clone Repo') {
+        stage('Checkout Code') {
             steps {
                 git 'https://github.com/Athik01/Ekart.git'
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                script {
+                    sh 'docker build -t $DOCKER_IMAGE .'
+                }
             }
         }
 
-        stage('Push Image to Minikube') {
+        stage('Push Docker Image to Hub') {
             steps {
                 script {
-                    sh 'eval $(minikube docker-env)'
-                    sh 'docker tag $IMAGE_NAME $IMAGE_NAME:latest'
+                    withDockerRegistry([credentialsId: 'mohamedathikr', url: 'https://index.docker.io/v1/']) {
+                        sh 'docker push $DOCKER_IMAGE'
+                    }
                 }
             }
         }
 
         stage('Deploy to Minikube') {
             steps {
-                sh 'kubectl create namespace $NAMESPACE || true'
-                sh 'kubectl apply -f k8s/deployment.yaml -n $NAMESPACE'
-                sh 'kubectl apply -f k8s/service.yaml -n $NAMESPACE'
+                script {
+                    sh 'kubectl apply -f deploymentservice.yml'
+                }
             }
         }
 
-        stage('Expose Application') {
+        stage('Verify Deployment') {
             steps {
-                sh 'minikube service ekart-service -n $NAMESPACE --url'
+                script {
+                    sh 'kubectl get pods'
+                    sh 'kubectl get services'
+                }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment Successful!"
+        }
+        failure {
+            echo "Deployment Failed!"
         }
     }
 }
