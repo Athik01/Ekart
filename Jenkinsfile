@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git 'https://github.com/Athik01/Ekart.git'
+                git branch: 'main', credentialsId: '890fb0fe-d7cc-4ce0-be01-6c51efe50fc1', url: 'https://github.com/Athik01/Ekart.git'
             }
         }
 
@@ -24,7 +24,7 @@ pipeline {
         stage('Push Docker Image to Hub') {
             steps {
                 script {
-                    withDockerRegistry([credentialsId: mohamedathikr, url: ""]) {
+                    withDockerRegistry([credentialsId: mohamedathikr, url: 'https://index.docker.io/v1/']) {
                         sh 'docker push ${DOCKER_IMAGE}'
                     }
                 }
