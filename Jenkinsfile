@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'mohamedathikr/ekart:latest'
-        KUBE_CONFIG = "$HOME/.kube/config"
+        DOCKER_IMAGE = "mohamedathikr/ekart:latest"
+        DOCKER_CREDENTIALS = "mohamedathikr"
     }
 
     stages {
@@ -16,7 +16,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh 'docker build -t $DOCKER_IMAGE .'
+                    sh 'docker build -t ${DOCKER_IMAGE} -f docker/Dockerfile .'
                 }
             }
         }
@@ -24,8 +24,8 @@ pipeline {
         stage('Push Docker Image to Hub') {
             steps {
                 script {
-                    withDockerRegistry([credentialsId: 'mohamedathikr', url: 'https://index.docker.io/v1/']) {
-                        sh 'docker push $DOCKER_IMAGE'
+                    withDockerRegistry([credentialsId: mohamedathikr, url: ""]) {
+                        sh 'docker push ${DOCKER_IMAGE}'
                     }
                 }
             }
@@ -34,7 +34,11 @@ pipeline {
         stage('Deploy to Minikube') {
             steps {
                 script {
-                    sh 'kubectl apply -f deploymentservice.yml'
+                    sh """
+                        minikube start
+                        kubectl create deployment ekart-deployment --image=${DOCKER_IMAGE} --port=8070 || true
+                        kubectl expose deployment ekart-deployment --type=NodePort --port=8070
+                    """
                 }
             }
         }
@@ -46,15 +50,6 @@ pipeline {
                     sh 'kubectl get services'
                 }
             }
-        }
-    }
-
-    post {
-        success {
-            echo "Deployment Successful!"
-        }
-        failure {
-            echo "Deployment Failed!"
         }
     }
 }
