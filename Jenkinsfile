@@ -13,6 +13,14 @@ pipeline {
             }
         }
 
+        stage('Build Application') {
+            steps {
+                script {
+                    sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
@@ -24,7 +32,7 @@ pipeline {
         stage('Push Docker Image to Hub') {
             steps {
                 script {
-                    withDockerRegistry([credentialsId: mohamedathikr, url: 'https://index.docker.io/v1/']) {
+                    withDockerRegistry([credentialsId: 'mohamedathikr', url: 'https://index.docker.io/v1/']) {
                         sh 'docker push ${DOCKER_IMAGE}'
                     }
                 }
@@ -36,8 +44,9 @@ pipeline {
                 script {
                     sh """
                         minikube start
-                        kubectl create deployment ekart-deployment --image=${DOCKER_IMAGE} --port=8070 || true
-                        kubectl expose deployment ekart-deployment --type=NodePort --port=8070
+                        kubectl delete deployment ekart-deployment || true
+                        kubectl create deployment ekart-deployment --image=${DOCKER_IMAGE} --port=8070
+                        kubectl expose deployment ekart-deployment --type=NodePort --port=8070 || true
                     """
                 }
             }
